@@ -22,6 +22,6 @@ RUN useradd -m -u 1002 appuser
 USER appuser
 
 EXPOSE 5006
-# DÜZELTME: Ortam değişkeninden portu alarak uvicorn'u başlat.
-# Varsayılan port 5006 olacak.
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${TTS_EDGE_SERVICE_PORT:-5006}"]
+# DÜZELTME: Uvicorn'a doğrudan uygulama yolunu vererek modül bulma sorununu çözüyoruz.
+# Bu, en standart ve güvenilir yöntemdir.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${TTS_EDGE_SERVICE_PORT:-5006}"]
