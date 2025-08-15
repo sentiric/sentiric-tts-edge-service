@@ -22,6 +22,6 @@ RUN useradd -m -u 1002 appuser
 USER appuser
 
 EXPOSE 5006
-# DÜZELTME: Uvicorn'a doğrudan uygulama yolunu vererek modül bulma sorununu çözüyoruz.
-# Bu, en standart ve güvenilir yöntemdir.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${TTS_EDGE_SERVICE_PORT:-5006}"]
+# DÜZELTME: Ortam değişkenini shell'in çözebilmesi için komutu "sh -c" içine alıyoruz.
+# Çift tırnaklar, shell'in değişkeni genişletmesini sağlar.
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${TTS_EDGE_SERVICE_PORT:-5006}"]
