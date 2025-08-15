@@ -6,24 +6,12 @@ import edge_tts
 import asyncio
 import structlog
 import sys
-import uvicorn
-from pydantic_settings import BaseSettings
 
-# --- 1. Konfigürasyonu Tanımla ---
-class Settings(BaseSettings):
-    # .env dosyasından okunacak, varsayılanı 5006 olacak
-    TTS_EDGE_SERVICE_PORT: int = 5006
-    
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-
-settings = Settings()
-
-# --- 2. Geri Kalan Kod ---
+# Windows'ta asyncio için gerekli politika ayarı
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
+# Temel loglama yapılandırması
 structlog.configure(
     processors=[
         structlog.processors.add_log_level,
@@ -72,12 +60,3 @@ async def synthesize(request: SynthesizeRequest):
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
-
-# --- 3. Uvicorn'u Programatik Olarak Başlat ---
-if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=settings.TTS_EDGE_SERVICE_PORT,
-        reload=False # Docker içinde reload'a gerek yok
-    )

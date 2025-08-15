@@ -21,6 +21,7 @@ RUN pip install .
 RUN useradd -m -u 1002 appuser
 USER appuser
 
-# DÜZELTME: Portu dinamik olarak alabilmesi için doğrudan main.py'yi çalıştır
 EXPOSE 5006
-CMD ["python", "-m", "app.main"]
+# DÜZELTME: Ortam değişkeninden portu alarak uvicorn'u başlat.
+# Varsayılan port 5006 olacak.
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${TTS_EDGE_SERVICE_PORT:-5006}"]

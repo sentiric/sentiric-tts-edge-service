@@ -12,8 +12,7 @@ dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "pydantic",
-    "pydantic-settings", # YENİ BAĞIMLILIK
-    "python-dotenv",
+    # pydantic-settings ve python-dotenv artık gerekli değil
     "structlog",
     "edge-tts",
     "anyio"
