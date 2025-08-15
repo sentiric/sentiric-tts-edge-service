@@ -12,11 +12,11 @@ dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "pydantic",
-    "pydantic-settings",
+    "pydantic-settings", # YENİ BAĞIMLILIK
     "python-dotenv",
     "structlog",
     "edge-tts",
-    "anyio" # edge-tts için gerekli
+    "anyio"
 ]
 
 [project.optional-dependencies]

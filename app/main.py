@@ -6,12 +6,24 @@ import edge_tts
 import asyncio
 import structlog
 import sys
+import uvicorn
+from pydantic_settings import BaseSettings
 
-# Windows'ta asyncio için gerekli politika ayarı
+# --- 1. Konfigürasyonu Tanımla ---
+class Settings(BaseSettings):
+    # .env dosyasından okunacak, varsayılanı 5006 olacak
+    TTS_EDGE_SERVICE_PORT: int = 5006
+    
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+
+settings = Settings()
+
+# --- 2. Geri Kalan Kod ---
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-# Temel loglama yapılandırması
 structlog.configure(
     processors=[
         structlog.processors.add_log_level,
@@ -20,24 +32,15 @@ structlog.configure(
     ],
     logger_factory=structlog.PrintLoggerFactory(),
 )
-logger = structlog.get_logger()
+logger = structlog.get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Uygulama başlangıcında ve bitişinde çalışacak kodları yönetir.
-    Bu, model yükleme gibi işlemler için idealdir.
-    """
     logger.info("Edge-TTS Service başlıyor...")
-    # Başlangıçta özel bir şey yapmamıza gerek yok,
-    # Communicate nesnesi her istekte oluşturulacak.
     yield
     logger.info("Edge-TTS Service kapanıyor.")
 
-app = FastAPI(
-    title="Sentiric Edge TTS Service",
-    lifespan=lifespan
-)
+app = FastAPI(title="Sentiric Edge TTS Service", lifespan=lifespan)
 
 class SynthesizeRequest(BaseModel):
     text: str
@@ -45,9 +48,6 @@ class SynthesizeRequest(BaseModel):
 
 @app.post("/api/v1/synthesize", response_class=Response)
 async def synthesize(request: SynthesizeRequest):
-    """
-    Metni sese çevirir ve mp3 olarak döndürür.
-    """
     try:
         logger.info("Sentezleme isteği alındı", text=request.text, voice=request.voice)
         
@@ -63,7 +63,6 @@ async def synthesize(request: SynthesizeRequest):
             raise ValueError("Ses verisi üretilemedi.")
             
         logger.info("Sentezleme başarılı.", voice=request.voice, audio_size=len(audio_buffer))
-        # edge-tts mp3 formatında verir. Content-Type'ı buna göre ayarlıyoruz.
         return Response(content=bytes(audio_buffer), media_type="audio/mpeg")
 
     except Exception as e:
@@ -72,8 +71,13 @@ async def synthesize(request: SynthesizeRequest):
 
 @app.get("/health")
 async def health_check():
-    """
-    Servisin çalışır durumda olduğunu kontrol eden basit bir endpoint.
-    """
-    # Bu servis bir model yüklemediği için her zaman 'ok' dönebiliriz.
     return {"status": "ok"}
+
+# --- 3. Uvicorn'u Programatik Olarak Başlat ---
+if __name__ == "__main__":
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=settings.TTS_EDGE_SERVICE_PORT,
+        reload=False # Docker içinde reload'a gerek yok
+    )

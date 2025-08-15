@@ -3,7 +3,6 @@ FROM python:3.11-slim-bullseye
 
 WORKDIR /app
 
-# Ortam değişkenleri
 ENV PIP_BREAK_SYSTEM_PACKAGES=1 \
     PIP_NO_CACHE_DIR=1
 
@@ -22,5 +21,6 @@ RUN pip install .
 RUN useradd -m -u 1002 appuser
 USER appuser
 
-EXPOSE 5002
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "5002"]
+# DÜZELTME: Portu dinamik olarak alabilmesi için doğrudan main.py'yi çalıştır
+EXPOSE 5006
+CMD ["python", "-m", "app.main"]
