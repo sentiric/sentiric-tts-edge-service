@@ -1,6 +1,6 @@
 # app/main.py
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Response, HTTPException
+from fastapi import FastAPI, Response, HTTPException, Request # Request'i import et
 from pydantic import BaseModel
 import edge_tts
 import asyncio
@@ -34,12 +34,30 @@ class SynthesizeRequest(BaseModel):
     text: str
     voice: str = "tr-TR-AhmetNeural"
 
-@app.post("/api/v1/synthesize", response_class=Response)
-async def synthesize(request: SynthesizeRequest):
+# --- DÜZELTME BURADA ---
+# Hem POST hem de GET metotlarını kabul etmesi için router'ı güncelliyoruz.
+@app.api_route("/api/v1/synthesize", methods=["GET", "POST"], response_class=Response)
+async def synthesize(request: Request):
+    # Gelen isteğin metoduna göre veriyi al
+    if request.method == "POST":
+        try:
+            req_data = await request.json()
+            payload = SynthesizeRequest(**req_data)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
+    else: # GET metodu için
+        payload = SynthesizeRequest(
+            text=request.query_params.get("text", ""),
+            voice=request.query_params.get("voice", "tr-TR-AhmetNeural")
+        )
+    
+    if not payload.text:
+        raise HTTPException(status_code=400, detail="Text parameter is required.")
+
     try:
-        logger.info("Sentezleme isteği alındı", text=request.text, voice=request.voice)
+        logger.info("Sentezleme isteği alındı", text=payload.text, voice=payload.voice)
         
-        communicate = edge_tts.Communicate(request.text, request.voice)
+        communicate = edge_tts.Communicate(payload.text, payload.voice)
         
         audio_buffer = bytearray()
         async for chunk in communicate.stream():
@@ -47,10 +65,10 @@ async def synthesize(request: SynthesizeRequest):
                 audio_buffer.extend(chunk["data"])
 
         if not audio_buffer:
-            logger.error("Ses verisi üretilemedi.", request=request.dict())
+            logger.error("Ses verisi üretilemedi.", request=payload.dict())
             raise ValueError("Ses verisi üretilemedi.")
             
-        logger.info("Sentezleme başarılı.", voice=request.voice, audio_size=len(audio_buffer))
+        logger.info("Sentezleme başarılı.", voice=payload.voice, audio_size=len(audio_buffer))
         return Response(content=bytes(audio_buffer), media_type="audio/mpeg")
 
     except Exception as e:
