@@ -75,6 +75,7 @@ async def synthesize(request: Request):
         logger.error("Edge-TTS sentezleme sırasında hata", error=str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=f"Ses üretilirken hata oluştu: {e}")
 
-@app.get("/health")
+@app.get("/health", tags=["Health"])
+@app.head("/health")
 async def health_check():
     return {"status": "ok"}
