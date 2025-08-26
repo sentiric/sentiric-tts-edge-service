@@ -23,3 +23,10 @@ Bu faz, servisin fonksiyonel bir API sunucusu haline getirilmesini hedefler.
 -   [ ] **Görev ID: TTS-EDGE-004 - Dockerfile Oluşturma**
     -   **Açıklama:** Servisi konteyner içinde çalıştırabilmek için optimize edilmiş bir `Dockerfile` oluştur.
     -   **Durum:** ⬜ Planlandı.
+
+### **FAZ 2: Platform Standartlarına Uyum**
+-   [ ] **Görev ID: TTS-EDGE-005 - Prometheus Metrikleri**
+    -   **Açıklama:** `prometheus-fastapi-instrumentator` kütüphanesini kullanarak standart RED (Rate, Errors, Duration) metriklerini `/metrics` endpoint'inde sun.
+    -   **Kabul Kriterleri:**
+        -   [ ] `/metrics` endpoint'i aktif olmalı.
+        -   [ ] Yapılan her `/synthesize` isteği, `http_requests_total` ve `http_requests_duration_seconds` gibi metrikleri artırmalı.    
