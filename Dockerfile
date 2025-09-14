@@ -1,6 +1,11 @@
 # --- STAGE 1: Production ---
 FROM python:3.11-slim-bullseye
 
+# Build argümanlarını build aşamasında kullanılabilir yap
+ARG GIT_COMMIT="unknown"
+ARG BUILD_DATE="unknown"
+ARG SERVICE_VERSION="0.0.0"
+
 WORKDIR /app
 
 ENV PIP_BREAK_SYSTEM_PACKAGES=1 \
@@ -21,7 +26,6 @@ RUN pip install .
 RUN useradd -m -u 1002 appuser
 USER appuser
 
-EXPOSE 5006
 # DÜZELTME: Ortam değişkenini shell'in çözebilmesi için komutu "sh -c" içine alıyoruz.
 # Çift tırnaklar, shell'in değişkeni genişletmesini sağlar.
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${TTS_EDGE_SERVICE_PORT:-5006}"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 14020"]
