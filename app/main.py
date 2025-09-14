@@ -1,49 +1,61 @@
 # app/main.py
-from contextlib import asynccontextmanager
-from fastapi import FastAPI, Response, HTTPException
-from pydantic import BaseModel
-import edge_tts
 import asyncio
-import structlog
 import sys
+from contextlib import asynccontextmanager
+
+import edge_tts
+import structlog
+from fastapi import FastAPI, Response, HTTPException, status
+from pydantic import BaseModel, Field
+
+# --- 1. Geliştirilmiş Logging Yapılandırması ---
+def setup_logging():
+    """Uygulama için standartlaştırılmış JSON loglamayı yapılandırır."""
+    structlog.configure(
+        processors=[
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.add_logger_name,
+            structlog.processors.TimeStamper(fmt="iso", utc=True),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            # Geliştirme için: structlog.dev.ConsoleRenderer()
+            # Üretim için: JSON formatı logların parse edilmesini kolaylaştırır
+            structlog.processors.JSONRenderer(),
+        ],
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.stdlib.BoundLogger,
+        cache_logger_on_first_use=True,
+    )
+
+setup_logging()
+logger = structlog.get_logger(__name__)
 
 # Windows'ta asyncio için gerekli politika ayarı
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-# Temel loglama yapılandırması
-structlog.configure(
-    processors=[
-        structlog.processors.add_log_level,
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.dev.ConsoleRenderer(),
-    ],
-    logger_factory=structlog.PrintLoggerFactory(),
-)
-logger = structlog.get_logger(__name__)
+# --- 2. Servis Katmanı ve Özel Hatalar ---
+class AudioGenerationError(Exception):
+    """Ses üretimi sırasında oluşan hatalar için özel istisna sınıfı."""
+    pass
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    logger.info("Edge-TTS Service başlıyor...")
-    yield
-    logger.info("Edge-TTS Service kapanıyor.")
+async def generate_audio_from_text(text: str, voice: str) -> bytes:
+    """
+    Verilen metin ve ses modelini kullanarak Edge-TTS ile ses verisi üretir.
 
-app = FastAPI(title="Sentiric Edge TTS Service", lifespan=lifespan)
+    Args:
+        text: Sese dönüştürülecek metin.
+        voice: Kullanılacak ses modeli (örn. "tr-TR-AhmetNeural").
 
-class SynthesizeRequest(BaseModel):
-    text: str
-    voice: str = "tr-TR-AhmetNeural"
+    Returns:
+        MP3 formatında ses verisi içeren bytes.
 
-# --- DÜZELTME BURADA: Sadece POST metodunu kabul ediyoruz ---
-@app.post("/api/v1/synthesize", response_class=Response)
-async def synthesize(payload: SynthesizeRequest):
-    if not payload.text:
-        raise HTTPException(status_code=400, detail="Text parameter is required.")
-
+    Raises:
+        AudioGenerationError: Ses verisi üretilemezse veya bir hata oluşursa.
+    """
+    logger.info("edge_tts.Communicate başlatılıyor", text=text, voice=voice)
     try:
-        logger.info("Sentezleme isteği alındı", text=payload.text, voice=payload.voice)
-        
-        communicate = edge_tts.Communicate(payload.text, payload.voice)
+        communicate = edge_tts.Communicate(text, voice)
         
         audio_buffer = bytearray()
         async for chunk in communicate.stream():
@@ -51,17 +63,82 @@ async def synthesize(payload: SynthesizeRequest):
                 audio_buffer.extend(chunk["data"])
 
         if not audio_buffer:
-            logger.error("Ses verisi üretilemedi.", request=payload.dict())
-            raise ValueError("Ses verisi üretilemedi.")
+            logger.error("Edge-TTS'ten boş ses verisi döndü.", text=text, voice=voice)
+            raise AudioGenerationError("Ses verisi üretilemedi (boş yanıt).")
             
-        logger.info("Sentezleme başarılı.", voice=payload.voice, audio_size=len(audio_buffer))
-        return Response(content=bytes(audio_buffer), media_type="audio/mpeg")
+        return bytes(audio_buffer)
 
     except Exception as e:
-        logger.error("Edge-TTS sentezleme sırasında hata", error=str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Ses üretilirken hata oluştu: {e}")
+        logger.error("Edge-TTS stream sırasında beklenmedik hata", exc_info=True)
+        # Orijinal hatayı zincirleyerek daha iyi hata takibi sağlıyoruz
+        raise AudioGenerationError(f"Edge-TTS hatası: {e}") from e
 
-@app.get("/health", tags=["Health"])
+
+# --- FastAPI Uygulaması ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Uygulama yaşam döngüsü yöneticisi."""
+    logger.info("Edge-TTS Service başlıyor...")
+    yield
+    logger.info("Edge-TTS Service kapanıyor.")
+
+app = FastAPI(
+    title="Sentiric Edge TTS Service",
+    description="Metni sese dönüştürmek için Microsoft Edge'in TTS motorunu kullanan bir API.",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+class SynthesizeRequest(BaseModel):
+    """/synthesize endpoint'i için istek modeli."""
+    text: str = Field(..., min_length=1, description="Sese dönüştürülecek metin.")
+    voice: str = Field("tr-TR-AhmetNeural", description="Kullanılacak ses modeli.")
+
+
+@app.post(
+    "/api/v1/synthesize",
+    response_class=Response,
+    tags=["TTS"],
+    summary="Metni sese dönüştürür",
+    responses={
+        200: {
+            "content": {"audio/mpeg": {}},
+            "description": "Başarılı. MP3 formatında ses verisi döner.",
+        },
+        400: {"description": "Geçersiz istek (örn: metin boş)."},
+        500: {"description": "Sunucu tarafında ses üretilirken bir hata oluştu."},
+    },
+)
+async def synthesize(payload: SynthesizeRequest):
+    """
+    Verilen metni (`text`) ve ses modelini (`voice`) kullanarak bir ses dosyası oluşturur.
+    """
+    try:
+        logger.info("Sentezleme isteği alındı", text=payload.text, voice=payload.voice)
+        
+        # Mantığı servis fonksiyonuna devrediyoruz
+        audio_bytes = await generate_audio_from_text(payload.text, payload.voice)
+        
+        logger.info("Sentezleme başarılı.", voice=payload.voice, audio_size=len(audio_bytes))
+        return Response(content=audio_bytes, media_type="audio/mpeg")
+
+    except AudioGenerationError as e:
+        logger.error("Ses üretimi hatası", error=str(e), request_data=payload.dict())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail=f"Ses üretilirken bir hata oluştu: {e}"
+        )
+    except Exception as e:
+        # Beklenmedik diğer tüm hatalar için genel bir yakalayıcı
+        logger.error("Endpoint'te beklenmedik genel hata", error=str(e), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Beklenmedik bir sunucu hatası oluştu."
+        )
+
+
+@app.get("/health", tags=["Health"], summary="Servis sağlık durumunu kontrol eder")
 @app.head("/health")
 async def health_check():
+    """Servisin ayakta olup olmadığını kontrol etmek için kullanılır."""
     return {"status": "ok"}
