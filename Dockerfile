@@ -11,8 +11,12 @@ WORKDIR /app
 ENV PIP_BREAK_SYSTEM_PACKAGES=1 \
     PIP_NO_CACHE_DIR=1
 
-# Gerekli sistem bağımlılıkları
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+# --- Çalışma zamanı sistem bağımlılıkları ---
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    netcat-openbsd \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Proje dosyalarını kopyala
 COPY pyproject.toml .
