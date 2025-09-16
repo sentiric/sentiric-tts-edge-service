@@ -17,7 +17,6 @@ dependencies = [
     "structlog",
     "edge-tts",
     "anyio",
-    # EKSİK OLAN BAĞIMLILIK AŞAĞIDAKİ SATIRDIR
     "pydantic-settings"
 ]
 
