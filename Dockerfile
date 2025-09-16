@@ -28,4 +28,4 @@ RUN useradd -m -u 1002 appuser
 USER appuser
 
 # Uygulamayı başlat
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "14020"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "14020", "--no-access-log"]
