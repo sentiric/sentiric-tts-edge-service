@@ -1,3 +1,5 @@
+# sentiric-tts-edge-service/pyproject.toml
+
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
@@ -12,7 +14,7 @@ dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "pydantic",
-    # pydantic-settings ve python-dotenv artık gerekli değil
+    "pydantic-settings",
     "structlog",
     "edge-tts",
     "anyio"
@@ -23,6 +25,3 @@ dev = ["pytest", "pytest-asyncio", "httpx"]
 
 [tool.setuptools]
 packages = ["app"]
-
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
