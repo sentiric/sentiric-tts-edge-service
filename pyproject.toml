@@ -14,10 +14,11 @@ dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "pydantic",
-    "pydantic-settings",
     "structlog",
     "edge-tts",
-    "anyio"
+    "anyio",
+    # EKSİK OLAN BAĞIMLILIK AŞAĞIDAKİ SATIRDIR
+    "pydantic-settings"
 ]
 
 [project.optional-dependencies]
@@ -25,3 +26,6 @@ dev = ["pytest", "pytest-asyncio", "httpx"]
 
 [tool.setuptools]
 packages = ["app"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
