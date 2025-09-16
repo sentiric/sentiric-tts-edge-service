@@ -137,6 +137,12 @@ async def synthesize(payload: SynthesizeRequest):
         )
 
 
+# YENİ: Log basmayan basit sağlık kontrolü endpoint'i
+@app.get("/healthz", include_in_schema=False, tags=["Health"])
+async def healthz_check():
+    """Servisin sadece ayakta olup olmadığını, log basmadan kontrol eder."""
+    return Response(status_code=status.HTTP_200_OK)
+
 @app.get("/health", tags=["Health"], summary="Servis sağlık durumunu kontrol eder")
 @app.head("/health")
 async def health_check():

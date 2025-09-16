@@ -42,6 +42,14 @@ Bu belge, `edge-tts-service`'in geliştirme görevlerini projenin genel fazları
 
 **Amaç:** Servisi, Sentiric ekosisteminin genel gözlemlenebilirlik ve dayanıklılık standartlarıyla uyumlu hale getirmek.
 
+-   **Görev ID: TTS-EDGE-005 - "Sessiz" Sağlık Kontrolü Endpoint'i Ekle**
+    -   **Durum:** ⬜ **Yapılacak (Öncelik 1 - ORTA)**
+    -   **Bağımlılık:** `infrastructure`'daki `OPS-IMPRV-01`
+    -   **Açıklama:** Docker `healthcheck` mekanizmasının neden olduğu log kirliliğini önlemek için, log basmayan yeni bir `/healthz` endpoint'i oluşturulmalıdır.
+    -   **Kabul Kriterleri:**
+        -   [ ] `/healthz` adında yeni bir endpoint oluşturulmalı.
+        -   [ ] Bu endpoint, çağrıldığında konsola hiçbir log basmamalıdır.
+        -   [ ] Endpoint, `200 OK` durum koduyla boş bir yanıt dönmelidir
 -   [ ] **Görev ID: TTS-EDGE-005 - Prometheus Metrikleri**
     -   **Açıklama:** `prometheus-fastapi-instrumentator` kütüphanesini kullanarak standart RED (Rate, Errors, Duration) metriklerini `/metrics` endpoint'inde sun.
     -   **Kabul Kriterleri:**
