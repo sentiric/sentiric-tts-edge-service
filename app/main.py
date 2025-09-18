@@ -1,10 +1,6 @@
-# sentiric-tts-edge-service/app/main.py
-
 import asyncio
 import sys
-import time
 import uuid
-import os
 from contextlib import asynccontextmanager
 
 import edge_tts
@@ -27,7 +23,8 @@ class AudioGenerationError(Exception):
 
 async def generate_audio_from_text(text: str, voice: str) -> bytes:
     logger = structlog.get_logger(__name__)
-    logger.info("edge_tts.Communicate başlatılıyor", text=text, voice=voice)
+    # Bu log artık bir iç işlem detayı, DEBUG'a çekiyoruz.
+    logger.debug("edge_tts.Communicate başlatılıyor", text=text, voice=voice)
     try:
         communicate = edge_tts.Communicate(text, voice)
         
@@ -51,14 +48,22 @@ async def generate_audio_from_text(text: str, voice: str) -> bytes:
 async def lifespan(app: FastAPI):
     setup_logging(log_level=settings.LOG_LEVEL, env=settings.ENV)
     log = structlog.get_logger("lifespan")
-    log.info("Application starting up...")
+    log.info(
+        "Uygulama başlıyor...", 
+        project=settings.PROJECT_NAME,
+        version=settings.SERVICE_VERSION,
+        commit=settings.GIT_COMMIT,
+        build_date=settings.BUILD_DATE,
+        env=settings.ENV, 
+        log_level=settings.LOG_LEVEL
+    )
     yield
-    log.info("Application shutting down.")
+    log.info("Uygulama başarıyla kapatıldı.")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description="Metni sese dönüştürmek için Microsoft Edge'in TTS motorunu kullanan bir API.",
-    version="1.0.0",
+    version=settings.SERVICE_VERSION,
     lifespan=lifespan
 )
 log = structlog.get_logger(__name__)
@@ -68,7 +73,7 @@ log = structlog.get_logger(__name__)
 async def logging_middleware(request: Request, call_next) -> Response:
     clear_contextvars()
     
-    if request.url.path == "/healthz":
+    if request.url.path in ["/health", "/healthz"]:
         return await call_next(request)
     
     trace_id = request.headers.get("X-Trace-ID") or f"tts-edge-trace-{uuid.uuid4()}"
@@ -96,6 +101,7 @@ class SynthesizeRequest(BaseModel):
 )
 async def synthesize(payload: SynthesizeRequest):
     try:
+        # Bu log bir kilometre taşı, INFO olarak kalması doğru.
         log.info("Sentezleme isteği alındı", text=payload.text, voice=payload.voice)
         audio_bytes = await generate_audio_from_text(payload.text, payload.voice)
         log.info("Sentezleme başarılı.", voice=payload.voice, audio_size=len(audio_bytes))

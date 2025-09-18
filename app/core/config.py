@@ -1,12 +1,16 @@
-# sentiric-tts-edge-service/app/core/config.py
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Sentiric Edge TTS Service"
     API_V1_STR: str = "/api/v1"
-    ENV: str = "production"
-    LOG_LEVEL: str = "INFO"
+    ENV: str = Field("production", validation_alias="ENV")
+    LOG_LEVEL: str = Field("INFO", validation_alias="LOG_LEVEL")
+
+    # Build-time bilgilerini de ekleyelim
+    SERVICE_VERSION: str = Field("0.0.0", validation_alias="SERVICE_VERSION")
+    GIT_COMMIT: str = Field("unknown", validation_alias="GIT_COMMIT")
+    BUILD_DATE: str = Field("unknown", validation_alias="BUILD_DATE")
     
     model_config = SettingsConfigDict(
         env_file=".env", 
