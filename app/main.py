@@ -1,3 +1,4 @@
+# sentiric-tts-edge-service/app/main.py
 import asyncio
 import sys
 import uuid
@@ -23,7 +24,6 @@ class AudioGenerationError(Exception):
 
 async def generate_audio_from_text(text: str, voice: str) -> bytes:
     logger = structlog.get_logger(__name__)
-    # Bu log artık bir iç işlem detayı, DEBUG'a çekiyoruz.
     logger.debug("edge_tts.Communicate başlatılıyor", text=text, voice=voice)
     try:
         communicate = edge_tts.Communicate(text, voice)
@@ -46,8 +46,8 @@ async def generate_audio_from_text(text: str, voice: str) -> bytes:
 # --- FastAPI Uygulaması ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    setup_logging(log_level=settings.LOG_LEVEL, env=settings.ENV)
-    log = structlog.get_logger("lifespan")
+    # DEĞİŞİKLİK: Loglamayı config değerleriyle başlatıyoruz.
+    log = setup_logging(log_level=settings.LOG_LEVEL, env=settings.ENV)
     log.info(
         "Uygulama başlıyor...", 
         project=settings.PROJECT_NAME,
@@ -66,11 +66,11 @@ app = FastAPI(
     version=settings.SERVICE_VERSION,
     lifespan=lifespan
 )
-log = structlog.get_logger(__name__)
 
 # Middleware
 @app.middleware("http")
 async def logging_middleware(request: Request, call_next) -> Response:
+    log = structlog.get_logger(__name__) # Middleware için logger'ı al
     clear_contextvars()
     
     if request.url.path in ["/health", "/healthz"]:
@@ -100,8 +100,8 @@ class SynthesizeRequest(BaseModel):
     },
 )
 async def synthesize(payload: SynthesizeRequest):
+    log = structlog.get_logger(__name__)
     try:
-        # Bu log bir kilometre taşı, INFO olarak kalması doğru.
         log.info("Sentezleme isteği alındı", text=payload.text, voice=payload.voice)
         audio_bytes = await generate_audio_from_text(payload.text, payload.voice)
         log.info("Sentezleme başarılı.", voice=payload.voice, audio_size=len(audio_bytes))

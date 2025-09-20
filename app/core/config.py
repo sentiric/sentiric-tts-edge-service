@@ -1,3 +1,4 @@
+# sentiric-tts-edge-service/app/core/config.py
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
@@ -5,6 +6,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Sentiric Edge TTS Service"
     API_V1_STR: str = "/api/v1"
     ENV: str = Field("production", validation_alias="ENV")
+    # DEĞİŞİKLİK: LOG_LEVEL'i config'e ekliyoruz.
     LOG_LEVEL: str = Field("INFO", validation_alias="LOG_LEVEL")
 
     # Build-time bilgilerini de ekleyelim

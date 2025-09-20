@@ -1,8 +1,9 @@
+# sentiric-tts-edge-service/app/core/logging.py
 import logging
 import sys
 import structlog
-from app.core.config import settings
 
+# DEĞİŞİKLİK: Fonksiyon artık parametre alıyor.
 def setup_logging(log_level: str, env: str):
     """
     Uygulama genelinde standartlaştırılmış, ortama duyarlı loglamayı yapılandırır.
@@ -44,6 +45,7 @@ def setup_logging(log_level: str, env: str):
     root_logger = logging.getLogger()
     root_logger.handlers = []
     root_logger.addHandler(handler)
+    # DEĞİŞİKLİK: Seviyeyi doğrudan parametreden alıyoruz.
     root_logger.setLevel(log_level)
 
     for logger_name in ["uvicorn", "uvicorn.error", "uvicorn.access"]:
