@@ -1,3 +1,4 @@
+# sentiric-tts-edge-service\app\main.py
 import asyncio
 import sys
 import uuid
@@ -5,7 +6,7 @@ from contextlib import asynccontextmanager
 
 import edge_tts
 import structlog
-from fastapi import FastAPI, Response, HTTPException, status, Request, Form
+from fastapi import FastAPI, Response, HTTPException, status, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -37,6 +38,10 @@ async def generate_audio_from_text(text: str, voice: str) -> bytes:
     except Exception as e:
         logger.error("Edge-TTS stream sırasında beklenmedik hata", exc_info=True)
         raise AudioGenerationError(f"Edge-TTS hatası: {e}") from e
+
+class SynthesizeRequest(BaseModel):
+    text: str = Field(..., min_length=1, description="Sese dönüştürülecek metin.")
+    voice: str = Field("tr-TR-EmelNeural", description="Kullanılacak ses modeli.", alias="voice_selector")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -77,30 +82,26 @@ async def logging_middleware(request: Request, call_next) -> Response:
     log.info("Request completed", http_status_code=response.status_code)
     return response
 
-# --- DEĞİŞİKLİK: Synthesize endpoint'ini form verisi alacak şekilde güncelle ---
 @app.post(
     "/api/v1/synthesize",
     response_class=Response,
     tags=["TTS"],
-    summary="Metni sese dönüştürür",
+    summary="Metni sese dönüştürür (JSON Body)",
     responses={
         200: {"content": {"audio/mpeg": {}}},
-        400: {"description": "Geçersiz istek (örn: metin boş)."},
+        422: {"description": "Geçersiz istek (örn: metin boş)."},
         500: {"description": "Sunucu tarafında ses üretilirken bir hata oluştu."},
     },
 )
-async def synthesize(
-    text: str = Form(..., min_length=1, description="Sese dönüştürülecek metin."),
-    voice: str = Form("tr-TR-EmelNeural", description="Kullanılacak ses modeli.")
-):
+async def synthesize(request: SynthesizeRequest):
     log = structlog.get_logger(__name__)
     try:
-        log.info("Sentezleme isteği alındı", text=text, voice=voice)
-        audio_bytes = await generate_audio_from_text(text, voice)
-        log.info("Sentezleme başarılı.", voice=voice, audio_size=len(audio_bytes))
+        log.info("Sentezleme isteği alındı", text=request.text, voice=request.voice)
+        audio_bytes = await generate_audio_from_text(request.text, request.voice)
+        log.info("Sentezleme başarılı.", voice=request.voice, audio_size=len(audio_bytes))
         return Response(content=audio_bytes, media_type="audio/mpeg")
     except AudioGenerationError as e:
-        log.error("Ses üretimi hatası", error=str(e), text=text, voice=voice)
+        log.error("Ses üretimi hatası", error=str(e), text=request.text, voice=request.voice)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail=f"Ses üretilirken bir hata oluştu: {e}"

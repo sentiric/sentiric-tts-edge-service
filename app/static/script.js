@@ -4,7 +4,11 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
 
         const form = event.target;
-        const formData = new FormData(form);
+        // DEĞİŞİKLİK: Form verisi yerine JSON oluşturuyoruz
+        const requestData = {
+            text: document.getElementById('text').value,
+            voice: document.getElementById('voice').value
+        };
         
         const resultContainer = document.getElementById('result-container');
         const audioPlayer = document.getElementById('audio-player');
@@ -21,10 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.textContent = 'Sentezleniyor...';
 
         try {
-            // FormData'yı doğrudan gönderiyoruz
             const response = await fetch('/api/v1/synthesize', {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData) // JSON olarak gönderiyoruz
             });
 
             if (!response.ok) {
