@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiric Edge TTS Service - Ses Atölyesi</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ Sentiric Edge TTS Service</h1>
+            <p>Platformun hızlı ve varsayılan ses motorunu test edin.</p>
+        </header>
+        
+        <main>
+            <form id="tts-form">
+                <div class="form-group">
+                    <label for="text">Sentezlenecek Metin</label>
+                    <textarea id="text" name="text" rows="5" placeholder="Buraya seslendirmek istediğiniz metni girin." required>Merhaba, Sentiric platformuna hoş geldiniz. Size nasıl yardımcı olabilirim?</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="voice">Ses Seçimi</label>
+                    <select id="voice" name="voice" required>
+                        <option value="tr-TR-AhmetNeural">Türkçe - Erkek (Ahmet)</option>
+                        <option value="tr-TR-EmelNeural" selected>Türkçe - Kadın (Emel)</option>
+                        <option value="en-US-JennyNeural">İngilizce (ABD) - Kadın (Jenny)</option>
+                        <option value="en-US-GuyNeural">İngilizce (ABD) - Erkek (Guy)</option>
+                        <option value="de-DE-ConradNeural">Almanca - Erkek (Conrad)</option>
+                        <option value="de-DE-KatjaNeural">Almanca - Kadın (Katja)</option>
+                        <option value="es-ES-AlvaroNeural">İspanyolca - Erkek (Alvaro)</option>
+                        <option value="fr-FR-HenriNeural">Fransızca - Erkek (Henri)</option>
+                    </select>
+                </div>
+                <button type="submit" id="submit-btn">Sesi Sentezle ve Dinle</button>
+            </form>
+            <div id="result-container" class="result-container hidden">
+                <h2>Sonuç:</h2>
+                <div id="spinner" class="spinner hidden"></div>
+                <audio id="audio-player" controls></audio>
+                <div id="error-message" class="error hidden"></div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>Sentiric "İletişim İşletim Sistemi"</p>
+        </footer>
+    </div>
+    <script src="{{ url_for('static', path='/script.js') }}"></script>
+</body>
+</html>

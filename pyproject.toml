@@ -17,7 +17,11 @@ dependencies = [
     "structlog",
     "edge-tts",
     "anyio",
-    "pydantic-settings"
+    "pydantic-settings",
+    # --- YENİ SATIRLAR ---
+    "jinja2",
+    "python-multipart"
+    # --- YENİ SATIRLAR SONU ---
 ]
 
 [project.optional-dependencies]
