@@ -33,4 +33,4 @@ COPY --chown=appuser:appgroup ./app/static ./app/static
 COPY --chown=appuser:appgroup ./app/templates ./app/templates
 USER appuser
 EXPOSE 7860
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "14020", "--no-access-log"]
+CMD ["/app/.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "14020", "--no-access-log"]
